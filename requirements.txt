@@ -13,5 +13,5 @@ psycopg2-binary==2.9.9
 SQLAlchemy==2.0.34
 typing_extensions==4.12.2
 Werkzeug==2.2.3
-modal==0.52.3
-openai==0.27.0
+modal
+openai>=0.27.0,<2.0.0

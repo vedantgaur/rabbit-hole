@@ -1,108 +1,100 @@
 from flask import Flask, request, jsonify
-from flask_mongoengine import MongoEngine
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from flask_cors import CORS
-import modal
+from openai import OpenAI
 
 app = Flask(__name__)
-app.config['MONGODB_SETTINGS'] = {
-    'db': 'rabbit_hole',
-    'host': 'localhost',
-    'port': 27017
-}
-app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Change this to a secure secret key
-db = MongoEngine(app)
-bcrypt = Bcrypt(app)
-jwt = JWTManager(app)
 CORS(app)
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'  # Change this to a secure secret key
+jwt = JWTManager(app)
 
-# Initialize Modal
-modal.init()
+API_KEY = "super-secret-token"
+BASE_URL = "https://hackmit--example-vllm-openai-compatible-serve.modal.run/v1"
 
-class User(db.Document):
-    username = db.StringField(unique=True, required=True)
-    password = db.StringField(required=True)
+client = OpenAI(api_key=API_KEY)
+client.base_url = BASE_URL
 
-class Interest(db.Document):
-    user = db.ReferenceField(User)
-    topic = db.StringField(required=True)
-
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.json
-    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    new_user = User(username=data['username'], password=hashed_password)
-    new_user.save()
-    return jsonify({"message": "User created successfully"}), 201
+# In-memory storage for user interests (replace with a database in a real application)
+user_interests = {}
 
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.json
-    user = User.objects(username=data['username']).first()
-    if user and bcrypt.check_password_hash(user.password, data['password']):
-        access_token = create_access_token(identity=str(user.id))
-        return jsonify(access_token=access_token), 200
-    return jsonify({"message": "Invalid credentials"}), 401
-
-@app.route('/add_interest', methods=['POST'])
-@jwt_required()
-def add_interest():
-    current_user_id = get_jwt_identity()
-    data = request.json
-    user = User.objects(id=current_user_id).first()
-    new_interest = Interest(user=user, topic=data['topic'])
-    new_interest.save()
-    return jsonify({"message": "Interest added successfully"}), 201
-
-@app.route('/get_interests', methods=['GET'])
-@jwt_required()
-def get_interests():
-    current_user_id = get_jwt_identity()
-    user = User.objects(id=current_user_id).first()
-    user_interests = Interest.objects(user=user)
-    interests = [interest.topic for interest in user_interests]
-    return jsonify({"interests": interests}), 200
+    # Implement your login logic here
+    # For demonstration purposes, we'll use a dummy user
+    access_token = create_access_token(identity='user123')
+    return jsonify(token=access_token), 200
 
 @app.route('/search', methods=['POST'])
 @jwt_required()
-def personalized_search():
+def search():
     current_user_id = get_jwt_identity()
-    user = User.objects(id=current_user_id).first()
-    user_interests = Interest.objects(user=user)
-    interests = [interest.topic for interest in user_interests]
+    interests = get_user_interests(current_user_id)
+    query = request.json['query']
     
-    data = request.json
-    query = data['query']
-    
-    # Call the Modal function
-    personalized_content = generate_personalized_content.call(query, interests)
+    content = generate_personalized_content(query, interests)
     
     return jsonify({
-        "content": personalized_content,
+        "content": content,
         "interests": interests
     }), 200
 
-# Define the Modal function for content generation
-@modal.function
-def generate_personalized_content(query, interests):
-    import openai
+@app.route('/chat', methods=['POST'])
+@jwt_required()
+def chat():
+    message = request.json['message']
+    context = request.json['context']
     
-    # Set up OpenAI API key (you should use environment variables for this in production)
-    openai.api_key = 'your-openai-api-key'  # Replace with your actual OpenAI API key
+    prompt = f"Given the context: '{context}', answer the following question: '{message}'"
     
-    prompt = f"Generate a personalized response for the query: '{query}'. Consider the user's interests: {', '.join(interests)}. Include relevant subtopics and potential follow-up topics, prefixing them with '#'."
-    
-    response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=prompt,
-        max_tokens=500,
-        n=1,
-        stop=None,
-        temperature=0.7,
+    completion = client.chat.completions.create(
+        model="meta-llama/Meta-Llama-3-8B-Instruct",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that answers questions based on given context."},
+            {"role": "user", "content": prompt}
+        ]
     )
     
-    return response.choices[0].text.strip()
+    return jsonify({"message": completion.choices[0].message.content.strip()}), 200
+
+@app.route('/interests', methods=['GET', 'POST'])
+@jwt_required()
+def interests():
+    current_user_id = get_jwt_identity()
+    
+    if request.method == 'GET':
+        interests = get_user_interests(current_user_id)
+        return jsonify({"interests": interests}), 200
+    
+    elif request.method == 'POST':
+        new_interest = request.json['interest']
+        add_user_interest(current_user_id, new_interest)
+        return jsonify({"message": "Interest added successfully"}), 200
+
+def generate_personalized_content(query, interests):
+    prompt = f"""Generate a personalized response for the query: '{query}'. 
+    Consider the user's interests: {', '.join(interests)}. 
+    Include relevant subtopics and potential follow-up topics, prefixing them with '#'.
+    If the query is STEM-related, include LaTeX formulas where appropriate.
+    Limit the response to 500 words."""
+
+    completion = client.chat.completions.create(
+        model="meta-llama/Meta-Llama-3-8B-Instruct",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that generates personalized content."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return completion.choices[0].message.content.strip()
+
+def get_user_interests(user_id):
+    return user_interests.get(user_id, [])
+
+def add_user_interest(user_id, interest):
+    if user_id not in user_interests:
+        user_interests[user_id] = []
+    if interest not in user_interests[user_id]:
+        user_interests[user_id].append(interest)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
