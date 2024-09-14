@@ -1,12 +1,11 @@
+// src/components/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Search from './Search';
-import ChatAssistant from './ChatAssistant';
-import Interests from './Interests';
+import Chat from './Chat';
 
-function Dashboard({ setAuth }) {
+function Dashboard() {
   const [interests, setInterests] = useState([]);
-  const [selectedText, setSelectedText] = useState('');
 
   useEffect(() => {
     fetchInterests();
@@ -14,7 +13,7 @@ function Dashboard({ setAuth }) {
 
   const fetchInterests = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/interests', {
+      const response = await axios.get('http://localhost:8080/interests', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setInterests(response.data.interests);
@@ -23,32 +22,19 @@ function Dashboard({ setAuth }) {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setAuth(false);
-  };
-
-  const handleTextSelection = () => {
-    const selection = window.getSelection();
-    if (selection.toString().length > 0) {
-      setSelectedText(selection.toString());
-    }
-  };
-
   return (
-    <div className="dashboard" onMouseUp={handleTextSelection}>
-      <nav>
-        <button onClick={handleLogout}>Logout</button>
-      </nav>
-      <div className="dashboard-content">
-        <div className="main-content">
-          <Search interests={interests} setInterests={setInterests} />
-          <Interests interests={interests} />
-        </div>
-        <div className="chat-assistant">
-          <ChatAssistant selectedText={selectedText} />
-        </div>
+    <div>
+      <h1>Dashboard</h1>
+      <div>
+        <h2>Your Interests</h2>
+        <ul>
+          {interests.map((interest, index) => (
+            <li key={index}>{interest}</li>
+          ))}
+        </ul>
       </div>
+      <Search interests={interests} setInterests={setInterests} />
+      <Chat />
     </div>
   );
 }
