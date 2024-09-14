@@ -1,4 +1,3 @@
-// src/components/Dashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Search from './Search';
@@ -24,7 +23,7 @@ function Dashboard() {
 
   return (
     <div>
-      <h1>Dashboard</h1>
+      <h1>Rabbit Hole</h1>
       <div>
         <h2>Your Interests</h2>
         <ul>

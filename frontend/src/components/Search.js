@@ -1,5 +1,4 @@
-// src/components/Search.js
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';

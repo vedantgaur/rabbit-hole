@@ -1,79 +1,55 @@
 import os
-from flask import Flask, request, jsonify
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-from flask_cors import CORS
+from flask import Flask, request, jsonify, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
-from pymongo import MongoClient
-from bson import ObjectId
-from openai import OpenAI
 import requests
+import io
+import modal
 
 app = Flask(__name__)
-CORS(app)
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-fallback-secret-key')
-jwt = JWTManager(app)
 
-# MongoDB connection
-client = MongoClient(os.environ.get('MONGO_URI', 'mongodb://localhost:27017/'))
-db = client[os.environ.get('DB_NAME', 'your_database_name')]
+users = {
+    "user@example.com": {
+        "password": generate_password_hash("password123"),
+        "interests": ["AI", "Machine Learning", "Web Development"]
+    }
+}
 
-# Collections
-users = db.users
-interests = db.interests
-
-# OpenAI client setup
-API_KEY = os.environ.get('OPENAI_API_KEY', 'your-openai-api-key')
-BASE_URL = os.environ.get('OPENAI_BASE_URL', 'https://hackmit--example-vllm-openai-compatible-serve.modal.run/v1')
-
-openai_client = OpenAI(api_key=API_KEY)
-openai_client.base_url = BASE_URL
-
-@app.route('/register', methods=['POST'])
-def register():
-    email = request.json.get('email')
-    password = request.json.get('password')
-    if not email or not password:
-        return jsonify({"msg": "Missing email or password"}), 400
-    
-    if users.find_one({"email": email}):
-        return jsonify({"msg": "Email already registered"}), 400
-    
-    hashed_password = generate_password_hash(password)
-    users.insert_one({"email": email, "password": hashed_password})
-    return jsonify({"msg": "User created successfully"}), 201
+# Modal setup
+stub = modal.Stub("manim-renderer")
+manim_function = modal.Function.lookup("manim-renderer", "render_manim")
 
 @app.route('/login', methods=['POST'])
 def login():
     email = request.json.get('email')
     password = request.json.get('password')
-    user = users.find_one({"email": email})
-    if user and check_password_hash(user['password'], password):
-        access_token = create_access_token(identity=str(user['_id']))
-        return jsonify(access_token=access_token), 200
-    return jsonify({"msg": "Bad username or password"}), 401
+    if email in users and check_password_hash(users[email]['password'], password):
+        return jsonify({"message": "Login successful", "email": email}), 200
+    return jsonify({"message": "Bad username or password"}), 401
 
 @app.route('/interests', methods=['GET', 'POST'])
-@jwt_required()
 def user_interests():
-    current_user_id = get_jwt_identity()
+    email = request.args.get('email')
+    if email not in users:
+        return jsonify({"message": "User not found"}), 404
     
     if request.method == 'GET':
-        user_interests = get_user_interests(current_user_id)
-        return jsonify(interests=user_interests), 200
+        return jsonify(interests=users[email]['interests']), 200
     
     elif request.method == 'POST':
         new_interest = request.json.get('interest')
         if not new_interest:
-            return jsonify({"msg": "Missing interest"}), 400
+            return jsonify({"message": "Missing interest"}), 400
         
-        add_user_interest(current_user_id, new_interest)
-        return jsonify({"msg": "Interest added successfully"}), 200
+        users[email]['interests'].append(new_interest)
+        return jsonify({"message": "Interest added successfully"}), 200
 
 @app.route('/search', methods=['POST'])
-@jwt_required()
 def search():
-    current_user_id = get_jwt_identity()
-    user_interests = get_user_interests(current_user_id)
+    email = request.json.get('email')
+    if email not in users:
+        return jsonify({"message": "User not found"}), 404
+    
+    user_interests = users[email]['interests']
     query = request.json['query']
     
     content = generate_personalized_content(query, user_interests)
@@ -87,81 +63,88 @@ def search():
         "music_snippet": music_snippet
     }), 200
 
-@app.route('/chat', methods=['POST'])
-@jwt_required()
-def chat():
-    message = request.json['message']
-    context = request.json['context']
-    
-    prompt = f"Given the context: '{context}', answer the following question: '{message}'"
-    
-    completion = openai_client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that answers questions based on given context."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    return jsonify({"message": completion.choices[0].message.content.strip()}), 200
+@app.route('/render_manim', methods=['POST'])
+def render_manim():
+    manim_code = request.json.get('manim_code')
+    if not manim_code:
+        return jsonify({"message": "Missing Manim code"}), 400
+
+    try:
+        rendered_content = manim_function.call(manim_code)
+        return send_file(
+            io.BytesIO(rendered_content),
+            mimetype='image/gif',
+            as_attachment=True,
+            download_name='animation.gif'
+        )
+    except Exception as e:
+        return jsonify({"message": f"Error rendering Manim: {str(e)}"}), 500
 
 def generate_personalized_content(query, interests):
-    prompt = f"""Generate a personalized response for the query: '{query}'. 
-    Consider the user's interests: {', '.join(interests)}. 
-    Include relevant subtopics and potential follow-up topics, prefixing them with '#'.
-    If the query is STEM-related, include LaTeX formulas where appropriate.
-    Limit the response to 500 words."""
-
-    completion = openai_client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates personalized content."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-
-    return completion.choices[0].message.content.strip()
+    # Placeholder function - replace with actual implementation
+    return f"Personalized content for query: {query}, considering interests: {', '.join(interests)}"
 
 def generate_manim_code(query):
-    prompt = f"Generate Manim code for the following query: {query}"
-    completion = openai_client.chat.completions.create(
-        model="meta-llama/Meta-Llama-3-8B-Instruct",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates Manim code."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return completion.choices[0].message.content.strip()
+    # Placeholder function - replace with actual implementation
+    return f"""
+from manim import *
+
+class ManimDemo(Scene):
+    def construct(self):
+        text = Text("{query}")
+        self.play(Write(text))
+        self.wait()
+    """
 
 def generate_music_snippet(query):
-    suno_api_url = "https://api.suno.com/generate"
-    suno_api_key = os.environ.get('SUNO_API_KEY')
-    
-    response = requests.post(suno_api_url, 
-                             json={"prompt": query}, 
-                             headers={"Authorization": f"Bearer {suno_api_key}"})
-    
-    if response.status_code == 200:
-        return response.json().get('audio_url')
-    else:
-        return None
-
-def get_user_interests(user_id):
-    user_interests = interests.find({"user_id": user_id})
-    return [interest['topic'] for interest in user_interests]
-
-def add_user_interest(user_id, interest):
-    if not interests.find_one({"user_id": user_id, "topic": interest}):
-        interests.insert_one({"user_id": user_id, "topic": interest})
+    # Placeholder function - replace with actual implementation
+    return "URL_to_generated_music_snippet"
 
 def is_stem_query(query):
-    stem_keywords = ['math', 'physics', 'chemistry', 'biology', 'engineering']
+    stem_keywords = [
+        'math', 'mathematics', 'algebra', 'geometry', 'calculus', 'statistics', 'probability',
+        'physics', 'mechanics', 'thermodynamics', 'electromagnetism', 'quantum', 'relativity',
+        'chemistry', 'organic', 'inorganic', 'biochemistry', 'molecular', 'atomic',
+        'biology', 'genetics', 'ecology', 'evolution', 'cell', 'organism', 'anatomy',
+        'engineering', 'mechanical', 'electrical', 'civil', 'chemical', 'software',
+        'computer science', 'algorithm', 'data structure', 'programming', 'coding',
+        'artificial intelligence', 'machine learning', 'neural network', 'deep learning',
+        'robotics', 'automation', 'cybernetics', 'nanotechnology', 'biotechnology',
+        'astronomy', 'astrophysics', 'cosmology', 'planet', 'star', 'galaxy',
+        'environmental science', 'climate', 'geology', 'meteorology', 'oceanography',
+        'neuroscience', 'cognitive science', 'psychology', 'behavioral science',
+        'data science', 'big data', 'analytics', 'visualization', 'modeling',
+        'cryptography', 'information theory', 'network theory', 'graph theory',
+        'optimization', 'linear algebra', 'differential equations', 'number theory',
+        'topology', 'set theory', 'logic', 'discrete mathematics', 'combinatorics',
+        'operations research', 'systems engineering', 'control theory', 'signal processing',
+        'materials science', 'polymer', 'metallurgy', 'ceramics', 'composites',
+        'bioinformatics', 'genomics', 'proteomics', 'systems biology', 'synthetic biology'
+    ]
     return any(keyword in query.lower() for keyword in stem_keywords)
 
 def is_music_query(query):
-    music_keywords = ['music', 'song', 'melody', 'rhythm', 'harmony', 'composer', 'singer']
+    music_keywords = [
+        'music', 'song', 'melody', 'rhythm', 'harmony', 'composer', 'singer', 'musician',
+        'band', 'orchestra', 'symphony', 'concert', 'opera', 'jazz', 'blues', 'rock',
+        'pop', 'hip hop', 'rap', 'classical', 'baroque', 'romantic', 'contemporary',
+        'electronic', 'dance', 'techno', 'house', 'ambient', 'folk', 'country',
+        'reggae', 'ska', 'punk', 'metal', 'alternative', 'indie', 'r&b', 'soul',
+        'funk', 'disco', 'gospel', 'choral', 'acapella', 'instrumental', 'vocal',
+        'lyrics', 'chord', 'scale', 'key', 'tempo', 'time signature', 'pitch',
+        'timbre', 'tone', 'note', 'staff', 'clef', 'octave', 'interval', 'triad',
+        'arpeggio', 'progression', 'cadence', 'modulation', 'transposition',
+        'counterpoint', 'fugue', 'sonata', 'concerto', 'suite', 'etude', 'nocturne',
+        'prelude', 'overture', 'aria', 'recitative', 'libretto', 'score', 'arrangement',
+        'orchestration', 'instrumentation', 'ensemble', 'quartet', 'quintet', 'sextet',
+        'conductor', 'virtuoso', 'improvisation', 'jam', 'gig', 'tour', 'album',
+        'single', 'EP', 'remix', 'cover', 'sample', 'loop', 'beat', 'bassline',
+        'riff', 'hook', 'verse', 'chorus', 'bridge', 'coda', 'intro', 'outro',
+        'crescendo', 'diminuendo', 'forte', 'piano', 'staccato', 'legato', 'vibrato',
+        'tremolo', 'glissando', 'portamento', 'syncopation', 'polyrhythm', 'ostinato',
+        'leitmotif', 'tone row', 'atonality', 'microtonality', 'serialism', 'minimalism'
+    ]
     return any(keyword in query.lower() for keyword in music_keywords)
 
 if __name__ == '__main__':
-    print("Starting Flask app...")
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
