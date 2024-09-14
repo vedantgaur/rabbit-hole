@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Rabbit Hole
 
-## Getting Started
+Rabbit Hole is a personalized web application that tailors content and resources based on user interests. This innovative platform creates a dynamic and engaging experience for users, allowing them to explore topics in-depth and discover new areas of interest.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **User Interests**: Users can index and store their personalized interests, creating a unique profile that informs the content they see.
+
+2. **Personalized Search**: The application generates tailored pages based on user searches, providing relevant and customized information.
+
+3. **Hyperlinked Subtopics**: Within the generated content, relevant subtopics and potential follow-up topics are hyperlinked, encouraging further exploration.
+
+4. **STEM Queries Handling**: For STEM-based queries, Rabbit Hole incorporates a LaTeX interpreter and integrates with an LLM to generate animations using Manim, enhancing the learning experience for technical topics.
+
+5. **Chat Assistant**: A chat assistant is available for user queries, with the added functionality of highlighting specific portions of text for more focused questions.
+
+6. **Dynamic Content Generation**: Each hyperlink click generates a new personalized page, incorporating all the application's features and adding the new topic to the user's interests.
+
+7. **Music Queries**: For music-related queries, Rabbit Hole integrates with Suno to generate relevant music snippets in the appropriate style.
+
+## Technologies Used
+
+- **Backend**: Flask (Python) for handling API requests
+- **Database**: PostgreSQL for user data storage
+- **Frontend**: React for the user interface
+- **API Communication**: Axios for making API calls
+- **LLM Integration**: Modal for LLM inference
+- **Chat Interface**: Baseten for chat interfacing
+- **Music Generation**: TuneHQ (if applicable) and Suno for music-related queries
+
+## Setup Instructions
+
+### Backend Setup
+
+1. Navigate to the `backend` directory.
+2. Install the required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set up PostgreSQL and update the database URI in `app.py`.
+4. Run the Flask app:
+   ```bash
+   python app.py
+   ```
+
+### Frontend Setup
+
+1. Navigate to the `frontend` directory.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Start the React app:
+   ```bash
+   npm start
+   ```
+
+## Project Structure
+
+```
+rabbit-hole/
+├── backend/
+│   ├── app.py
+│   └── requirements.txt
+└── frontend/
+    ├── public/
+    ├── src/
+    │   ├── App.js
+    │   └── ...
+    ├── package.json
+    └── ...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Future Enhancements
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- Integration with fetch.ai for agentic applications
+- Improved personalization algorithms
+- Mobile application development
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Contributing
 
-## Learn More
+We welcome contributions to the Rabbit Hole project. Please read our contributing guidelines before submitting pull requests.
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+This project is licensed under the MIT License.
