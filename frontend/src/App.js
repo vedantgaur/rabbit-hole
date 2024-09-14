@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import Register from './components/Register';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,6 +44,16 @@ function App() {
                 <Dashboard setAuth={setAuth} />
               ) : (
                 <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              !isAuthenticated ? (
+                <Register setAuth={setAuth} setAuthToken={setAuthToken} />
+              ) : (
+                <Navigate to="/dashboard" replace />
               )
             } 
           />
