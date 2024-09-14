@@ -1,59 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import Login from './components/Login';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
+import Search from './components/Search';
+import Interests from './components/Interests';
 
 function App() {
-  const [username, setUsername] = useState('');
-  const [interest, setInterest] = useState('');
-  const [interests, setInterests] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
-    if (username) {
-      fetchInterests();
+    if (token) {
+      setIsAuthenticated(true);
     }
-  }, [username]);
+  }, [token]);
 
-  const fetchInterests = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/get_interests/${username}`);
-      setInterests(response.data.interests);
-    } catch (error) {
-      console.error('Error fetching interests:', error);
-    }
+  const setAuth = (boolean) => {
+    setIsAuthenticated(boolean);
   };
 
-  const addInterest = async () => {
-    try {
-      await axios.post('http://localhost:5000/add_interest', { username, topic: interest });
-      setInterest('');
-      fetchInterests();
-    } catch (error) {
-      console.error('Error adding interest:', error);
-    }
+  const setAuthToken = (token) => {
+    setToken(token);
+    localStorage.setItem('token', token);
   };
 
   return (
-    <div className="App">
-      <h1>Personalized Search</h1>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Add interest"
-        value={interest}
-        onChange={(e) => setInterest(e.target.value)}
-      />
-      <button onClick={addInterest}>Add Interest</button>
-      <h2>Your Interests:</h2>
-      <ul>
-        {interests.map((int, index) => (
-          <li key={index}>{int}</li>
-        ))}
-      </ul>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              !isAuthenticated ? (
+                <Login setAuth={setAuth} setAuthToken={setAuthToken} />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              !isAuthenticated ? (
+                <Register setAuth={setAuth} setAuthToken={setAuthToken} />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              isAuthenticated ? (
+                <Dashboard setAuth={setAuth} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/search" 
+            element={
+              isAuthenticated ? (
+                <Search />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/interests" 
+            element={
+              isAuthenticated ? (
+                <Interests />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
