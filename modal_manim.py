@@ -1,4 +1,3 @@
-from flask import send_file
 from modal import App, Image
 from modal_inference import generate
 
@@ -16,11 +15,12 @@ manim_image = (
         "libpango1.0-dev"
     )
     .env({"PKG_CONFIG_PATH": "/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"})
-    .pip_install("manim")
+    .pip_install("manim", "flask", "openai")
 )
 
-@app.function(gpu="any")
+@app.function(gpu="any", image=manim_image)
 def generate_manim_animation(content):
+    from flask import send_file
     manim_code = text_to_manim_llm(content)
     animation = render_manim(manim_code)
     return send_file(save_animation(animation))
