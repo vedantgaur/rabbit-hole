@@ -1,29 +1,21 @@
-from modal import App, Image, Secret
-import requests
+from openai import OpenAI
+import os
 import re
 
-app = App("huggingface-inference")
+def generate(prompt, is_subtopic=False):
+    client = OpenAI(api_key="super-secret-token")
+    BASE_URL = "https://hackmit--example-vllm-openai-compatible-serve.modal.run/v1"
+    client.base_url = BASE_URL
 
-@app.function(
-    image=Image.debian_slim().pip_install("requests"),
-    secrets=[Secret.from_name("huggingface-secret")]
-)
-def llm_inference(prompt, is_subtopic=False):
-    import os
+    completion = client.chat.completions.create(
+        model="meta-llama/Meta-Llama-3-8B-Instruct",
+        messages=[
+          {"role": "system", "content": "You are a helpful assistant."},
+          {"role": "user", "content": prompt}
+        ]
+    )
 
-    API_URL = "https://api-inference.huggingface.co/models/gpt2-large"
-    headers = {"Authorization": f"Bearer {os.environ['HUGGINGFACE_API_KEY']}"}
-
-    def query(payload):
-        response = requests.post(API_URL, headers=headers, json=payload)
-        return response.json()
-
-    output = query({
-        "inputs": prompt,
-        "parameters": {"max_length": 500}
-    })
-
-    content = output[0]['generated_text']
+    content = completion.choices[0].message.content
 
     if not is_subtopic:
         # Extract subtopics and highlight key terms
@@ -32,8 +24,8 @@ def llm_inference(prompt, is_subtopic=False):
             "main_content": highlighted_content,
             "subtopics": subtopics
         }
-    else:
-        return {"main_content": content}
+
+    return {"main_content": content}
 
 def process_content(content):
     # Extract subtopics (assuming they're marked with '##')
@@ -43,6 +35,3 @@ def process_content(content):
     highlighted_content = re.sub(r'\*\*(.*?)\*\*', r'<a href="#" class="key-term">\1</a>', content)
     
     return subtopics, highlighted_content
-
-if __name__ == "__main__":
-    app.serve()

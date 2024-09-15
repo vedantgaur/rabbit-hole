@@ -1,12 +1,15 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from modal import App, web_endpoint
+from modal_inference import generate
+import modal
 import os
 
 app = Flask(__name__, static_folder='static')
 
 # Initialize Modal stubs
-inference_stub = App("huggingface-inference")
-manim_stub = App("manim-renderer")
+generate_manim_animation = modal.Function.lookup("manim-renderer", "generate_manim_animation")
+# from modal_manim import generate_manim_animation
+# manim_stub = App("manim-renderer")
 
 @app.route('/static/<path:path>')
 def send_static(path):
@@ -25,17 +28,17 @@ def process_query():
         query = request.json['query']
         
         # Call the Modal function for LLM inference
-        result = inference_stub.llm_inference.remote(f"Provide a detailed explanation about: {query}")
+        result = generate(f"Provide a detailed explanation about: {query}")
         
         content = result['main_content']
         subtopics = result['subtopics']
         
         # Check if it's a STEM query
-        if is_stem_query(query):
-            # Generate Manim animation
-            animation_path = manim_stub.generate_manim_animation.remote(content)
-        else:
-            animation_path = None
+        animation_path = None
+        # if is_stem_query(query):
+        #     # Generate Manim animation
+        #     # animation_path = generate_manim_animation.remote(content)
+        #     animation_path = generate_manim_animation(content)
         
         return jsonify({
             'content': content,
@@ -50,14 +53,11 @@ def process_query():
 def get_subtopic():
     try:
         subtopic = request.json['subtopic']
-        result = inference_stub.llm_inference.remote(f"Provide detailed information about the subtopic: {subtopic}", is_subtopic=True)
+        result = generate(f"Provide detailed information about the subtopic: {subtopic}", is_subtopic=True)
         return jsonify(result)
     except Exception as e:
         print(f"Error processing subtopic: {e}")
         return jsonify({'error': str(e)}), 500
-
-
-
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -121,7 +121,7 @@ def chat_with_assistant(message, highlighted_text=None):
     if highlighted_text:
         prompt += f"Highlighted text: {highlighted_text}\n"
     prompt += "Please provide a helpful response."
-    return llm_inference.remote(prompt)
+    return generate(prompt)
 
 if __name__ == '__main__':
     app.run(port=4001, debug=True)

@@ -1,7 +1,8 @@
+from flask import send_file
 from modal import App, Image
+from modal_inference import generate
 
 app = App("manim-renderer")
-inference_app = App("huggingface-inference")
 
 manim_image = (
     Image.debian_slim()
@@ -22,9 +23,8 @@ manim_image = (
 def generate_manim_animation(content):
     manim_code = text_to_manim_llm(content)
     animation = render_manim(manim_code)
-    return save_animation(animation)
+    return send_file(save_animation(animation))
 
-@app.function()
 def text_to_manim_llm(content):
     prompt = f"""
     Generate Manim code for the following content. Here's the template to use:
@@ -43,10 +43,9 @@ def text_to_manim_llm(content):
     """
     
     # Use your LLM to generate the Manim code based on this prompt
-    manim_code = inference_app.llm_inference.remote(prompt)
+    manim_code = generate(prompt)
     return manim_code
 
-@app.function(image=manim_image)
 def render_manim(code: str):
     from manim import config, tempconfig
     from manim.scene.scene import Scene
@@ -77,7 +76,6 @@ def render_manim(code: str):
 
     return rendered_content
 
-@app.function()
 def save_animation(animation):
     import uuid
     filename = f"animation_{uuid.uuid4()}.gif"

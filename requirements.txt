@@ -1,5 +1,6 @@
 flask
 wikipedia
+manim
 modal
 openai
 python-dotenv
