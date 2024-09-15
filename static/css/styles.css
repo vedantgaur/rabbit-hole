@@ -1,0 +1,117 @@
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1;
+    font-kerning: normal;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.3;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.landing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    text-align: center;
+}
+
+h1, h2, h3 {
+    font-family: Georgia, Times New Roman, Times, serif;
+    font-weight: 500;
+}
+
+input[type="text"] {
+    padding: 10px;
+    margin-right: 10px;
+    border: none;
+    border-bottom: 1px solid #bbb;
+    font-size: 16px;
+}
+
+input:focus {
+    outline: none;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #6495ED;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #4169E1;
+}
+
+#content {
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+#gif-container {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 100px;
+    display: none;
+    z-index: 1000;
+}
+
+#scroll-arrow {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: url('../images/arrow.gif') no-repeat center center;
+    background-size: contain;
+    display: none;
+    z-index: 1001;
+    cursor: pointer;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-20px);}
+    60% {transform: translateY(-10px);}
+}
+
+.key-term {
+    color: #6495ED;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.subtopic {
+    color: #6495ED;
+    cursor: pointer;
+}
+
+.subtopic-content {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.connecting-line {
+    position: absolute;
+    height: 2px;
+    background-color: #6495ED;
+    transform-origin: 0 0;
+}

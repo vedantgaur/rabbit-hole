@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socrates</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <center>
+        <h1>Socrates: {{ query }}</h1>
+    </center>
+    <div id="content">
+        {{ content | safe }}
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)'], ["[", ']'], ["$$", "$$"], "(", ")"]
+  }
+};
+</script>
+    <script type="text/javascript" id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</body>
+</html>

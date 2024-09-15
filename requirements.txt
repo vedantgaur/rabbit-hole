@@ -1,0 +1,6 @@
+flask
+wikipedia
+modal
+openai
+python-dotenv
+requests

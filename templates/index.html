@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rabbit Hole</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="landing">
+        <img src="{{ url_for('static', filename='images/rabbit.png') }}" alt="Rabbit Logo" style="width: 200px; height: auto;">
+        <h1>Rabbit Hole</h1>
+        <p>Deep dive into anything.</p>
+        <form id="search-form">
+            <input type="text" name="query" placeholder="Enter a topic" required>
+            <button type="submit">Go</button>
+        </form>
+    </div>
+    <div id="content" style="display: none;"></div>
+    <div id="gif-container">
+        <img src="{{ url_for('static', filename='images/rabbit.gif') }}" alt="Rabbit Jumping">
+    </div>
+    <div id="scroll-arrow"></div>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>
