@@ -1,15 +1,19 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from modal import App, web_endpoint
 from modal_inference import generate
+import base64
 import modal
+import uuid
 import os
+
+ANIMATION_DIR = "animations"
+os.makedirs(ANIMATION_DIR, exist_ok=True)
 
 app = Flask(__name__, static_folder='static')
 
 # Initialize Modal stubs
 generate_manim_animation = modal.Function.lookup("manim-renderer", "generate_manim_animation")
-# from modal_manim import generate_manim_animation
-# manim_stub = App("manim-renderer")
+generate_manim_animation.keep_warm(2)
 
 @app.route('/static/<path:path>')
 def send_static(path):
@@ -35,15 +39,16 @@ def process_query():
         
         # Check if it's a STEM query
         animation_path = None
-        # if is_stem_query(query):
-        #     # Generate Manim animation
-        #     # animation_path = generate_manim_animation.remote(content)
-        #     animation_path = generate_manim_animation(content)
-        
+        if is_stem_query(query):
+            # Generate Manim animation
+            animation_data = generate_manim_animation.remote(content)
+            if animation_data:
+                animation_path = save_animation_to_file(animation_data)
+    
         return jsonify({
             'content': content,
             'subtopics': subtopics,
-            'animation': animation_path,
+            'animation': animation_path,  # This will be the file path or None
         })
     except Exception as e:
         print(f"Error processing query: {e}")
@@ -122,6 +127,18 @@ def chat_with_assistant(message, highlighted_text=None):
         prompt += f"Highlighted text: {highlighted_text}\n"
     prompt += "Please provide a helpful response."
     return generate(prompt)
+
+def save_animation_to_file(animation_data: str) -> str:
+    """
+    Save the base64-encoded animation data to a file and return the file path.
+    """
+    filename = f"animation_{uuid.uuid4()}.gif"
+    filepath = os.path.join(ANIMATION_DIR, filename)
+    
+    with open(filepath, "wb") as f:
+        f.write(base64.b64decode(animation_data))
+    
+    return filepath
 
 if __name__ == '__main__':
     app.run(port=4001, debug=True)

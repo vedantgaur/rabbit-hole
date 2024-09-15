@@ -1,8 +1,8 @@
-from openai import OpenAI
 import os
 import re
 
 def generate(prompt, is_subtopic=False):
+    from openai import OpenAI
     client = OpenAI(api_key="super-secret-token")
     BASE_URL = "https://hackmit--example-vllm-openai-compatible-serve.modal.run/v1"
     client.base_url = BASE_URL
