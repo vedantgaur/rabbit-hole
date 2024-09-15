@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = form.querySelector('input[name="query"]').value;
 
         // Show the rabbit GIF briefly
+        gifContainer.innerHTML = `<img src="${gifContainer.querySelector('img').src}?t=${Date.now()}" alt="Rabbit Jumping">`;
         gifContainer.style.display = 'block';
         setTimeout(() => {
             gifContainer.style.display = 'none';
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             content.appendChild(subtopicsList);
 
             // Show and animate the arrow after query processing
+            scrollArrow.style.backgroundImage = `url('${scrollArrow.style.backgroundImage.slice(4, -1).replace(/["']/g, "")}?t=${Date.now()}')`;
             scrollArrow.style.display = 'block';
             scrollArrow.style.animation = 'bounce 2s infinite';
 
