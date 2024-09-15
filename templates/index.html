@@ -20,7 +20,22 @@
     <div id="gif-container">
         <img src="{{ url_for('static', filename='images/rabbit.gif') }}" alt="Rabbit Jumping">
     </div>
+    <div id="small-gif-container" style="display: none; position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
+        <img src="{{ url_for('static', filename='images/rabbit.gif') }}" alt="Rabbit Jumping" style="width: 50px; height: 50px;">
+    </div>
     <div id="scroll-arrow"></div>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ["$", "$"]],
+        displayMath: [['$$', '$$'], ["\\[", "\\]"]],
+        processEscapes: true // Allow escaping for special characters
+      }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
 </body>
 </html>

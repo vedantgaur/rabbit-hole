@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('search-form');
     const gifContainer = document.getElementById('gif-container');
+    const smallGifContainer = document.getElementById('small-gif-container');
     const scrollArrow = document.getElementById('scroll-arrow');
     const content = document.getElementById('content');
 
@@ -8,12 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
         const query = form.querySelector('input[name="query"]').value;
 
-        // Show the rabbit GIF briefly
+        // Show the rabbit GIF
         gifContainer.innerHTML = `<img src="${gifContainer.querySelector('img').src}?t=${Date.now()}" alt="Rabbit Jumping">`;
         gifContainer.style.display = 'block';
-        setTimeout(() => {
-            gifContainer.style.display = 'none';
-        }, 700);
 
         try {
             const response = await fetch('/process_query', {
@@ -23,6 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ query: query })
             });
+
+            // Hide the GIF after receiving the response
+            gifContainer.style.display = 'none';
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -36,7 +37,10 @@ document.addEventListener('DOMContentLoaded', function() {
             content.innerHTML = `<h2>${query}</h2>${data.content}`;
             content.style.display = 'block';
 
-            // Add subtopics
+            // Trigger MathJax to render the LaTeX for the main content
+            await MathJax.typeset();
+
+            // Add subtopics with links for each generation
             const subtopicsList = document.createElement('ul');
             data.subtopics.forEach(subtopic => {
                 const li = document.createElement('li');
@@ -46,8 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
             content.appendChild(subtopicsList);
 
             // Show and animate the arrow after query processing
-            scrollArrow.style.backgroundImage = `url('${scrollArrow.style.backgroundImage.slice(4, -1).replace(/["']/g, "")}?t=${Date.now()}')`;
-            scrollArrow.style.display = 'block';
+            scrollArrow.style.display = 'block'; // Keep the arrow visible
             scrollArrow.style.animation = 'bounce 2s infinite';
 
             // Add event listeners for key terms and subtopics
@@ -58,6 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Display error message to the user
             content.innerText = `An error occurred: ${error.message}`;
             content.style.display = 'block';
+            // Hide the GIF in case of error
+            gifContainer.style.display = 'none';
         }
     });
 
@@ -81,6 +86,12 @@ document.addEventListener('DOMContentLoaded', function() {
             subtopic.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const subtopicText = e.target.textContent;
+
+                // Show the small rabbit GIF
+                smallGifContainer.style.display = 'block';
+                smallGifContainer.innerHTML = `<img src="${smallGifContainer.querySelector('img').src}?t=${Date.now()}" alt="Rabbit Jumping">`;
+
+                // Call a function to handle the subtopic content generation
                 await generateSubtopicContent(subtopicText, e.target);
             });
         });
@@ -88,6 +99,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function generateSubtopicContent(subtopic, clickedElement) {
         try {
+            // Show the small rabbit GIF without animation
+            smallGifContainer.style.display = 'block';
+            smallGifContainer.innerHTML = `<img src="${smallGifContainer.querySelector('img').src}?t=${Date.now()}" alt="Rabbit Jumping">`;
+            smallGifContainer.style.animation = 'none'; // Stop any animation
+
             const response = await fetch('/get_subtopic', {
                 method: 'POST',
                 headers: {
@@ -107,21 +123,25 @@ document.addEventListener('DOMContentLoaded', function() {
             subtopicDiv.className = 'subtopic-content';
             subtopicDiv.innerHTML = `<h3>${subtopic}</h3>${data.main_content}`;
 
-            // Create a line connecting the clicked element to the new content
-            const line = createConnectingLine(clickedElement, subtopicDiv);
-
-            // Append the line and new content to the main content div
-            content.appendChild(line);
+            // Append the new content
             content.appendChild(subtopicDiv);
+
+            // Trigger MathJax to render the LaTeX
+            await MathJax.typeset();
 
             // Scroll to the new content
             subtopicDiv.scrollIntoView({ behavior: 'smooth' });
 
+            // Hide the small rabbit GIF when generation is complete
+            smallGifContainer.style.display = 'none';
+
             // Add event listeners to the new content
             addContentEventListeners();
-
+            
         } catch (error) {
             console.error('Error fetching subtopic:', error);
+            // Hide the small rabbit GIF in case of error
+            smallGifContainer.style.display = 'none';
         }
     }
 
